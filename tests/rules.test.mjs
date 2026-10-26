@@ -1,0 +1,14 @@
+import test,{before,after} from 'node:test';
+import {initializeTestEnvironment,assertFails,assertSucceeds} from '@firebase/rules-unit-testing';
+import {doc,setDoc,getDoc,getDocs,collection,deleteDoc,serverTimestamp} from 'firebase/firestore';
+import {readFile} from 'node:fs/promises';
+let env;
+const google=(email,uid=email)=>env.authenticatedContext(uid,{email,email_verified:true,firebase:{sign_in_provider:'google.com'}}).firestore();
+const write=(db,revision=1,uid='ta')=>setDoc(doc(db,'gradebooks/shared'),{payload:'[]',revision,updatedBy:uid,updatedAt:serverTimestamp()});
+before(async()=>{env=await initializeTestEnvironment({projectId:'demo-gradebook',firestore:{rules:await readFile('firestore.rules','utf8')}});await env.withSecurityRulesDisabled(async c=>setDoc(doc(c.firestore(),'members/ta@example.com'),{active:true}));});
+after(()=>env.cleanup());
+test('outsiders and unauthenticated users cannot read or write grades',async()=>{for(const db of [env.unauthenticatedContext().firestore(),google('outsider@example.com')]){await assertFails(getDoc(doc(db,'gradebooks/shared')));await assertFails(write(db));}});
+test('non Google provider and unverified email denied even with owner email',async()=>{for(const token of [{email_verified:false,firebase:{sign_in_provider:'google.com'}},{email_verified:true,firebase:{sign_in_provider:'password'}}]){const db=env.authenticatedContext('fake',{email:'yunho.seo@kyonggi.ac.kr',...token}).firestore();await assertFails(getDoc(doc(db,'gradebooks/shared')));}});
+test('staff cannot promote themselves or list members',async()=>{const db=google('ta@example.com','ta');await assertFails(setDoc(doc(db,'members/new@example.com'),{active:true}));await assertFails(getDocs(collection(db,'members')));await assertSucceeds(getDoc(doc(db,'members/ta@example.com')));});
+test('staff revision and author are enforced; deletes denied',async()=>{const db=google('ta@example.com','ta');await assertSucceeds(write(db));await assertSucceeds(getDoc(doc(db,'gradebooks/shared')));await assertFails(write(db,1));await assertFails(write(db,2,'forged'));await assertSucceeds(write(db,2));await assertFails(deleteDoc(doc(db,'gradebooks/shared')));});
+test('only owner grants access; revocation blocks grade access',async()=>{const owner=google('yunho.seo@kyonggi.ac.kr','owner');await assertSucceeds(setDoc(doc(owner,'members/new@example.com'),{active:true}));await assertSucceeds(getDocs(collection(owner,'members')));await assertSucceeds(getDoc(doc(google('new@example.com'),'gradebooks/shared')));await assertSucceeds(deleteDoc(doc(owner,'members/new@example.com')));await assertFails(getDoc(doc(google('new@example.com'),'gradebooks/shared')));await assertFails(setDoc(doc(owner,'members/bad@example.com'),{active:true,role:'admin'}));});

@@ -1,0 +1,4 @@
+const {getGlobalDefaultAccount,setActiveAccount}=require('firebase-tools/lib/auth');
+const {requireAuth}=require('firebase-tools/lib/requireAuth');
+const {Client}=require('firebase-tools/lib/apiv2');
+(async()=>{const options={project:'tjdwj-7a047'};setActiveAccount(options,getGlobalDefaultAccount());await requireAuth(options);const api=new Client({urlPrefix:'https://identitytoolkit.googleapis.com',apiVersion:'admin/v2'});for(const path of ['/projects/tjdwj-7a047/config','/projects/tjdwj-7a047/defaultSupportedIdpConfigs/google.com']){try{const r=await api.get(path,{skipLog:{resBody:true}});console.log(JSON.stringify({path,enabled:r.body.enabled,authorizedDomains:r.body.authorizedDomains,signIn:r.body.signIn?{allowDuplicateEmails:r.body.signIn.allowDuplicateEmails}:undefined}));}catch(e){console.log(JSON.stringify({path,error:e.message}));}}})().catch(e=>{console.error(e.message);process.exit(1)});
