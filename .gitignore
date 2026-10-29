@@ -3,3 +3,9 @@ node_modules/
 .firebase/
 .npm-cache/
 *debug.log
+
+# Local configuration and generated browser bundle (contains public Firebase config)
+.env
+.env.*
+!.env.example
+/public/cloud.js
