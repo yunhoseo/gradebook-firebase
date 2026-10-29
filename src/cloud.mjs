@@ -3,10 +3,11 @@ import {getAuth,GoogleAuthProvider,signInWithPopup,signInWithCredential,onAuthSt
 import {getFirestore,doc,getDoc,setDoc,deleteDoc,collection,getDocs,onSnapshot,runTransaction,serverTimestamp,connectFirestoreEmulator} from 'firebase/firestore';
 import {setCourses,currentCourses} from './app.mjs';
 import {prepareWrite} from './sync.mjs';
-const config={apiKey:'AIzaSyBe-bUHTqVWN2D9-aOaRvai28KwSLU1Y0w',authDomain:'tjdwj-7a047.firebaseapp.com',projectId:'tjdwj-7a047',storageBucket:'tjdwj-7a047.firebasestorage.app',messagingSenderId:'288376783838',appId:'1:288376783838:web:9afb1749bc230dca07134f'};
+import {browserFirebaseConfig} from './firebase-config.mjs';
 const local=location.hostname==='127.0.0.1'||location.hostname==='localhost';
 const emulated=local&&new URLSearchParams(location.search).has('emulator');
-const app=initializeApp(emulated?{...config,projectId:'demo-gradebook'}:config),auth=getAuth(app),db=getFirestore(app);
+const config=browserFirebaseConfig(__FIREBASE_CONFIG__,emulated);
+const app=initializeApp(config),auth=getAuth(app),db=getFirestore(app);
 if(emulated){connectAuthEmulator(auth,'http://127.0.0.1:9099');connectFirestoreEmulator(db,'127.0.0.1',8080);}
 const OWNER='yunho.seo@kyonggi.ac.kr',ref=doc(db,'gradebooks','shared');
 const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
